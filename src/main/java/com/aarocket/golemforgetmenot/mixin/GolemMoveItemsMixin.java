@@ -66,10 +66,10 @@ public class GolemMoveItemsMixin {
 	// extra height when chest searching
 	// Default search is 0.5 vertically, increase for every block you want
 	@ModifyConstant(
-			method = "isWithinRange",
+			method = "isWithinTargetDistance",
 			constant = @Constant(doubleValue = 0.5)
 	)
-	private double modifyWithinRange(double original)
+	private double modifyWithinTargetDistance(double original)
 	{
 		return 0.5  + (GolemForgetMeNotConfig.getHeightReach() - 2);
 	}
@@ -78,11 +78,11 @@ public class GolemMoveItemsMixin {
 	// Sometimes higher chests werent being detected, shift golem position only for raycast to make it easier to see higher chests
 	// this kinda breaks with anything higher than 4
 	@ModifyVariable(
-			method = "isVisible",
+			method = "targetIsReachableFromPosition",
 			at = @At("HEAD"),
 			ordinal = 0
 	)
-	private Vec3d modifyVecPos(Vec3d original)
+	private Vec3 modifyVecPos(Vec3 original)
 	{
 		// adjust to middle of chests
 		// any value 2 or greater doesnt detect bottom blocks
