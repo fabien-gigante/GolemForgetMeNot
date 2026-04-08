@@ -2,7 +2,7 @@ package com.aarocket.golemforgetmenot.mixin;
 
 import com.aarocket.golemforgetmenot.GolemForgetMeNotConfig;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
-import net.minecraft.util.math.Vec3d;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
@@ -11,12 +11,18 @@ import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.Iterator;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.Container;
+import net.minecraft.world.entity.PathfinderMob;
+import net.minecraft.world.entity.ai.behavior.TransportItemsBetweenContainers;
+import net.minecraft.world.item.ItemStack;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 @Mixin(TransportItemsBetweenContainers.class)
 public class GolemMoveItemsMixin {
 	// Change the limit, basically modify all instances of the constant 10 in the markVisited function to instead check with the modifyVisits function
 	@ModifyConstant(
-			method = "markVisited(Lnet/minecraft/entity/mob/PathAwareEntity;Lnet/minecraft/world/World;Lnet/minecraft/util/math/BlockPos;)V",
+			method = "setVisitedBlockPos(Lnet/minecraft/world/entity/PathfinderMob;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)V",
 			constant = @Constant(intValue = 10)
 	)
 	private int modifyVisits(int original) {
