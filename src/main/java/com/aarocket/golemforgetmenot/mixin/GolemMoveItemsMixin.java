@@ -4,6 +4,7 @@ import com.aarocket.golemforgetmenot.GolemForgetMeNotConfig;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Constant;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -15,11 +16,15 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.behavior.TransportItemsBetweenContainers;
+import net.minecraft.world.entity.ai.behavior.TransportItemsBetweenContainers.TransportItemTarget;
 import net.minecraft.world.item.ItemStack;
-import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import net.minecraft.world.level.Level;
 
 @Mixin(TransportItemsBetweenContainers.class)
-public class GolemMoveItemsMixin {
+public abstract class GolemMoveItemsMixin {
+	@Shadow
+	protected abstract boolean canSeeAnyTargetSide(final TransportItemTarget target, final Level level, final PathfinderMob body, final Vec3 eyePosition);
+
 	// Change the limit, basically modify all instances of the constant 10 in the markVisited function to instead check with the modifyVisits function
 	@ModifyConstant(
 			method = "setVisitedBlockPos(Lnet/minecraft/world/entity/PathfinderMob;Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;)V",
@@ -29,7 +34,7 @@ public class GolemMoveItemsMixin {
 		return GolemForgetMeNotConfig.getVisitsUntilCooldown();
 	}
 
-	// if configuration asks for it, ignore empty slots during first pass of insertion, focussing on completing existing stacks first
+	// If configuration asks for it, ignore empty slots during first pass of insertion, focussing on completing existing stacks first
     @ModifyExpressionValue(
         method = "addItemsToContainer(Lnet/minecraft/world/entity/PathfinderMob;Lnet/minecraft/world/Container;)Lnet/minecraft/world/item/ItemStack;",
         at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/ItemStack;isEmpty()Z", ordinal = 0)
@@ -39,7 +44,7 @@ public class GolemMoveItemsMixin {
         return original && !GolemForgetMeNotConfig.getCompleteStacks();
     }
 	
-	// if configuration asks for it, only insert in empty slots after trying to complete existing stacks
+	// If configuration asks for it, only insert in empty slots after trying to complete existing stacks
     @Inject(
         method = "addItemsToContainer(Lnet/minecraft/world/entity/PathfinderMob;Lnet/minecraft/world/Container;)Lnet/minecraft/world/item/ItemStack;",
         at = @At("RETURN"),
@@ -63,7 +68,7 @@ public class GolemMoveItemsMixin {
     }
 
 
-	// extra height when chest searching
+	// Extra height when chest searching
 	// Default search is 0.5 vertically, increase for every block you want
 	@ModifyConstant(
 			method = "isWithinTargetDistance",
@@ -74,18 +79,16 @@ public class GolemMoveItemsMixin {
 		return 0.5  + (GolemForgetMeNotConfig.getHeightReach() - 2);
 	}
 
-
-	// Sometimes higher chests werent being detected, shift golem position only for raycast to make it easier to see higher chests
-	// this kinda breaks with anything higher than 4
-	@ModifyVariable(
+	// Sometimes higher chests werent being detected, add one more raycast with shifted golem position so in can see higher chests
+	@Inject(
 			method = "targetIsReachableFromPosition",
-			at = @At("HEAD"),
-			ordinal = 0
+			at = @At("RETURN"),
+			cancellable = true
 	)
-	private Vec3 modifyVecPos(Vec3 original)
-	{
-		// adjust to middle of chests
-		// any value 2 or greater doesnt detect bottom blocks
-		return original.add(0,1.5,0);
-	}
+	private void targetIsReachableFromPosition(Level level, boolean canReachTarget, Vec3 pos, TransportItemTarget target, PathfinderMob body, CallbackInfoReturnable<Boolean> cir) {
+		boolean reachable = cir.getReturnValue();
+		if (reachable || !canReachTarget || GolemForgetMeNotConfig.getHeightReach() == 2) return;
+		// Adjust to middle of chests, and raycast again to check if we can see the chest from there
+		cir.setReturnValue(canReachTarget && this.canSeeAnyTargetSide(target, level, body, pos.add(0,1.5,0)));
+   	}
 }
