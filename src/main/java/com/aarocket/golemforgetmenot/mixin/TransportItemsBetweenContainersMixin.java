@@ -21,7 +21,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 @Mixin(TransportItemsBetweenContainers.class)
-public abstract class GolemMoveItemsMixin {
+public abstract class TransportItemsBetweenContainersMixin {
 	@Shadow
 	protected abstract boolean canSeeAnyTargetSide(final TransportItemTarget target, final Level level, final PathfinderMob body, final Vec3 eyePosition);
 
@@ -74,8 +74,7 @@ public abstract class GolemMoveItemsMixin {
 			method = "isWithinTargetDistance",
 			constant = @Constant(doubleValue = 0.5)
 	)
-	private double modifyWithinTargetDistance(double original)
-	{
+	private double modifyWithinTargetDistance(double original) {
 		return 0.5  + (GolemForgetMeNotConfig.getHeightReach() - 2);
 	}
 
@@ -85,10 +84,11 @@ public abstract class GolemMoveItemsMixin {
 			at = @At("RETURN"),
 			cancellable = true
 	)
-	private void targetIsReachableFromPosition(Level level, boolean canReachTarget, Vec3 pos, TransportItemTarget target, PathfinderMob body, CallbackInfoReturnable<Boolean> cir) {
+	private void targetIsReachableFromPositionOrHigher(Level level, boolean canReachTarget, Vec3 pos, TransportItemTarget target, PathfinderMob body, CallbackInfoReturnable<Boolean> cir) {
+		// Vanilla does : return canReachTarget && this.canSeeAnyTargetSide(target, level, body, pos);
 		boolean reachable = cir.getReturnValue();
 		if (reachable || !canReachTarget || GolemForgetMeNotConfig.getHeightReach() == 2) return;
-		// Adjust to middle of chests, and raycast again to check if we can see the chest from there
-		cir.setReturnValue(canReachTarget && this.canSeeAnyTargetSide(target, level, body, pos.add(0,1.5,0)));
+		// Not found and has extended reach : raycast again from higher position to check if we can see the target from there
+		cir.setReturnValue(this.canSeeAnyTargetSide(target, level, body, pos.add(0, 1.5, 0)));
    	}
 }
