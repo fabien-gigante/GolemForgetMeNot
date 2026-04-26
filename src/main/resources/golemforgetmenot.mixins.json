@@ -3,7 +3,7 @@
 	"package": "com.aarocket.golemforgetmenot.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"GolemMoveItemsMixin"
+		"TransportItemsBetweenContainersMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
